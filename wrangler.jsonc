@@ -1,0 +1,11 @@
+{
+  "name": "rehype-timeseries-chart-demo",
+  "compatibility_date": "2025-06-01",
+  "main": "api/index.ts",
+  "assets": {
+    "directory": "./public"
+  },
+  "ai": {
+    "binding": "AI"
+  }
+}
