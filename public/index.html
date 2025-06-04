@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Markdown to HTML with rehype-timeseries-chart</title>
+    <style>
+        /* ─── Theme Variables ───────────────────────────────────────────────── */
+        :root[data-theme="light"] {
+            --bg-page:            #f5f5f5;
+            --text-primary:       #222222;
+            --text-secondary:     #555555;
+            --bg-container:       #ffffff;
+            --border-color:       #dddddd;
+            --bg-editor:          #ffffff;
+            --text-editor:        #2c2c2c;
+            --placeholder-color:  #888888;
+            --accent:             #0066cc;
+            --accent-hover:       #004999;
+            --shadow-light:       rgba(0, 0, 0, 0.1);
+        }
+        :root[data-theme="dark"] {
+            --bg-page:            #1e1e1e;
+            --text-primary:       #e0e0e0;
+            --text-secondary:     #bbbbbb;
+            --bg-container:       #2c2c2c;
+            --border-color:       #3a3a3a;
+            --bg-editor:          #252526;
+            --text-editor:        #dcdcdc;
+            --placeholder-color:  #888888;
+            --accent:             #569cd6;
+            --accent-hover:       #3e8ec1;
+            --shadow-light:       rgba(0, 0, 0, 0.7);
+        }
+
+        /* ─── Global Page Styles ─────────────────────────────────────────────── */
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen,
+            Ubuntu, Cantarell, "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif;
+            background-color: var(--bg-page);
+            color: var(--text-primary);
+            display: flex;
+            flex-direction: column;
+            /* Page will grow vertically as needed */
+        }
+        h1 {
+            margin: 0;
+            font-size: 1.6rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+        h2 {
+            margin: 0 0 8px 0;
+            font-size: 1.2rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+        }
+
+        /* ─── Theme‐Toggle Button ───────────────────────────────────────────── */
+        .theme-toggle {
+            margin-left: auto;
+            background: none;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            padding: 6px 12px;
+            font-size: 14px;
+            color: var(--text-primary);
+            background-color: var(--bg-container);
+            cursor: pointer;
+            box-shadow: 0 1px 3px var(--shadow-light);
+            transition: background-color 0.2s ease, border-color 0.2s ease;
+        }
+        .theme-toggle:hover {
+            border-color: var(--accent);
+        }
+
+        /* ─── AI Prompt Block (with Model selector) ────────────────────────── */
+        .ai-prompt {
+            margin: 20px 0;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .ai-prompt textarea {
+            width: 100%;
+            min-height: 60px;
+            font-family: Menlo, Consolas, "Courier New", monospace;
+            font-size: 14px;
+            line-height: 1.5;
+            color: var(--text-editor);
+            background-color: var(--bg-editor);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            padding: 10px 12px;
+            resize: none;
+            overflow-y: hidden;
+            outline: none;
+            box-shadow: 0 1px 3px var(--shadow-light);
+            transition: border-color 0.2s ease, box-shadow 0 2px 4px var(--shadow-light);
+        }
+        .ai-prompt textarea:focus {
+            border-color: var(--accent);
+            box-shadow: 0 2px 4px var(--shadow-light);
+        }
+        .ai-prompt textarea::placeholder {
+            color: var(--placeholder-color);
+        }
+
+        .ai-controls {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+        .ai-controls button {
+            padding: 10px 18px;
+            font-size: 14px;
+            font-weight: 500;
+            color: #fff;
+            background-color: var(--accent);
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+            box-shadow: 0 1px 3px var(--shadow-light);
+            white-space: nowrap;
+        }
+        .ai-controls button:hover:not(:disabled) {
+            background-color: var(--accent-hover);
+        }
+        .ai-controls button:disabled {
+            background-color: var(--border-color);
+            cursor: not-allowed;
+        }
+        .ai-controls select {
+            width: 100%;
+            max-width: 350px;
+            font-size: 14px;
+            padding: 6px 8px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            background-color: var(--bg-editor);
+            color: var(--text-editor);
+            box-shadow: 0 1px 3px var(--shadow-light);
+            outline: none;
+            transition: border-color 0.2s ease, box-shadow 0 2px 4px var(--shadow-light);
+        }
+        .ai-controls select:focus {
+            border-color: var(--accent);
+            box-shadow: 0 2px 4px var(--shadow-light);
+        }
+
+        /* ─── Two‐Column Container ───────────────────────────────────────────── */
+        .container {
+            display: flex;
+            gap: 20px;
+            align-items: stretch;
+            width: 100%;
+            /* container height grows with rendered content */
+        }
+        .column {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background-color: var(--bg-container);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 16px;
+            box-shadow: 0 1px 3px var(--shadow-light);
+            /* children can expand */
+        }
+
+        /* ─── Markdown Editor Styles ────────────────────────────────────────── */
+        textarea.markdown-input {
+            width: 100%;
+            min-height: 100px;
+            font-family: Menlo, Consolas, "Courier New", monospace;
+            font-size: 14px;
+            line-height: 1.5;
+            color: var(--text-editor);
+            background-color: var(--bg-editor);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            padding: 10px 12px;
+            resize: none;
+            overflow-y: hidden;
+            outline: none;
+            box-shadow: 0 1px 3px var(--shadow-light);
+            transition: border-color 0.2s ease, box-shadow 0 2px 4px var(--shadow-light);
+            flex: 1 1 auto;
+        }
+        textarea.markdown-input:focus {
+            border-color: var(--accent);
+            box-shadow: 0 2px 4px var(--shadow-light);
+        }
+        textarea.markdown-input::placeholder {
+            color: var(--placeholder-color);
+        }
+
+        /* ─── Rendered HTML Area (max‐width = half viewport) ──────────────────── */
+        #rendered {
+            width: 100%;
+            max-width: 50vw;
+            margin: 0 auto;
+            background-color: var(--bg-editor);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            padding: 12px;
+            box-shadow: 0 1px 3px var(--shadow-light);
+            /* no overflow hidden—allows content to expand naturally */
+        }
+        svg {
+            max-width: 100%;
+            height: auto;
+            display: block;
+        }
+
+        @media (max-width: 800px) {
+            .container {
+                flex-direction: column;
+            }
+            .ai-controls {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            /* On narrow screens, let rendered area be full width */
+            #rendered {
+                max-width: 100vw;
+            }
+        }
+    </style>
+</head>
+<body>
+<!-- ─── Header + Theme Toggle ───────────────────────────────────────────── -->
+<div style="display: flex; align-items: center; gap: 12px;">
+    <h1>Markdown to HTML with rehype-timeseries-chart</h1>
+    <button class="theme-toggle" id="theme-toggle-btn">Toggle Dark/Light</button>
+</div>
+
+<!-- ─── AI Prompt Block with Model selector next to Send button ───────── -->
+<div class="ai-prompt">
+    <textarea
+            id="ai-prompt"
+            placeholder="Ask AI to generate Markdown… (e.g. a chart of 2023 sales)"
+    ></textarea>
+
+    <div class="ai-controls">
+        <button id="send-prompt-btn" disabled>Send Prompt</button>
+        <select id="model-select">
+            <option value="" disabled selected>Loading models…</option>
+        </select>
+    </div>
+</div>
+
+<!-- ─── Markdown Editor / Rendered Output ───────────────────────────────── -->
+<div class="container">
+    <div class="column">
+        <h2>Markdown</h2>
+        <textarea
+                id="markdown-input"
+                class="markdown-input"
+                placeholder="Enter Markdown here…"
+        ></textarea>
+    </div>
+    <div class="column">
+        <h2>Rendered HTML</h2>
+        <div id="rendered"></div>
+    </div>
+</div>
+
+<script type="module">
+    import { unified }             from 'https://esm.sh/unified@10.1.2';
+    import remarkParse             from 'https://esm.sh/remark-parse@10.0.2';
+    import remarkRehype            from 'https://esm.sh/remark-rehype@10.1.0';
+    import rehypeStringify         from 'https://esm.sh/rehype-stringify@9.0.3';
+    import rehypeCsvToMultiLineSvg from './rehype-timeseries-chart.js';
+
+    const aiPromptInput  = document.getElementById('ai-prompt');
+    const sendPromptBtn  = document.getElementById('send-prompt-btn');
+    const modelSelect    = document.getElementById('model-select');
+    const markdownInput  = document.getElementById('markdown-input');
+    const renderedDiv    = document.getElementById('rendered');
+    const themeToggleBtn = document.getElementById('theme-toggle-btn');
+    const rootElement    = document.documentElement;
+
+    /* ── Auto-Resize Utility ───────────────────────────────────────────── */
+    function autoResizeTextarea(el) {
+        el.style.height = 'auto';
+        el.style.height = `${el.scrollHeight}px`;
+    }
+
+    /* ── Render Markdown → HTML + SVG ──────────────────────────────────── */
+    async function renderMarkdown() {
+        const mdText = markdownInput.value;
+        try {
+            // Fetch computed text color so D3 sees a valid color string:
+            const computedTextColor = getComputedStyle(rootElement)
+                .getPropertyValue('--text-primary').trim();
+
+            const file = await unified()
+                .use(remarkParse)
+                .use(remarkRehype, { allowDangerousHtml: true })
+                .use(rehypeCsvToMultiLineSvg, {
+                    width: 640,
+                    height: 300,
+                    title: '',
+                    textColor: computedTextColor,
+                    backgroundColor: 'transparent',
+                    codeLanguage: 'csv',
+                    saveOriginal: false
+                })
+                .use(rehypeStringify)
+                .process(mdText);
+
+            renderedDiv.innerHTML = String(file);
+        } catch (err) {
+            renderedDiv.innerHTML = `<pre style="color: var(--accent);">Error: ${err.message}</pre>`;
+            console.error(err);
+        }
+    }
+
+    /* ── Theme Toggle Logic ────────────────────────────────────────────── */
+    function setTheme(theme) {
+        rootElement.setAttribute('data-theme', theme);
+        localStorage.setItem('preferred-theme', theme);
+        themeToggleBtn.textContent = theme === 'dark' ? 'Switch to Light' : 'Switch to Dark';
+        // Re-render so SVG text color updates:
+        renderMarkdown();
+    }
+
+    const savedTheme = localStorage.getItem('preferred-theme');
+    if (savedTheme) {
+        setTheme(savedTheme);
+    } else {
+        const systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        setTheme(systemDark ? 'dark' : 'light');
+    }
+
+    themeToggleBtn.addEventListener('click', () => {
+        const current = rootElement.getAttribute('data-theme');
+        setTheme(current === 'dark' ? 'light' : 'dark');
+    });
+
+    /* ── Populate Model Combobox on Load ────────────────────────────────── */
+    async function loadModels() {
+        try {
+            const response = await fetch('/api/models');
+            if (!response.ok) throw new Error(`Status ${response.status}`);
+            const models = await response.json();
+
+            modelSelect.innerHTML = '';
+            let foundDefault = false;
+            const defaultModel = '@hf/meta-llama/meta-llama-3-8b-instruct';
+
+            models.forEach((modelName) => {
+                const opt = document.createElement('option');
+                opt.value = modelName;
+                opt.textContent = modelName;
+                if (modelName === defaultModel) {
+                    opt.selected = true;
+                    foundDefault = true;
+                }
+                modelSelect.appendChild(opt);
+            });
+
+            // If default model not found, select the first one:
+            if (!foundDefault && modelSelect.options.length > 0) {
+                modelSelect.selectedIndex = 0;
+            }
+
+            // Enable send button now that models are loaded:
+            sendPromptBtn.disabled = false;
+        } catch (err) {
+            console.error('Failed to load models:', err);
+            modelSelect.innerHTML = '';
+            const opt = document.createElement('option');
+            opt.value = '';
+            opt.textContent = 'Error loading models';
+            modelSelect.appendChild(opt);
+        }
+    }
+    loadModels();
+
+    /* ── Event Listeners for Editors ─────────────────────────────────────── */
+    let renderTimer;
+    markdownInput.addEventListener('input', () => {
+        clearTimeout(renderTimer);
+        renderTimer = setTimeout(renderMarkdown, 1000);
+        autoResizeTextarea(markdownInput);
+    });
+
+    aiPromptInput.addEventListener('input', () => {
+        autoResizeTextarea(aiPromptInput);
+    });
+
+    sendPromptBtn.addEventListener('click', async () => {
+        const prompt = aiPromptInput.value.trim();
+        const model  = modelSelect.value;
+        if (!prompt || !model) return;
+        sendPromptBtn.disabled = true;
+
+        try {
+            const response = await fetch('/api/prompt', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ prompt, model })
+            });
+            if (!response.ok) throw new Error(`Status ${response.status}`);
+            const result = await response.json();
+
+            // Replace Markdown with AI result:
+            markdownInput.value = result.response.trim();
+            autoResizeTextarea(markdownInput);
+            renderMarkdown();
+        } catch (err) {
+            console.error('AI API error:', err);
+        } finally {
+            sendPromptBtn.disabled = false;
+        }
+    });
+
+    /* ── Default Content on Load ────────────────────────────────────────── */
+    aiPromptInput.value = `
+Draw a diagram with the first 20 numbers of the Fibonacci sequence and the sequence of prime numbers.
+
+How to draw your chart (STRICT rules)
+
+1. **Open** a fenced block with *exactly*:
+   \`\`\`csv
+   (three back-ticks, then csv, then a newline).
+
+2. **Inside the fence put ONLY raw CSV** – *no comments, hashes, or blank lines*.
+   • Line 1  → column headers.
+     - First header = X-axis. It can be
+       YYYY-MM-DD · YYYY-MM · YYYY · HH:MM:SS · HH:MM · HH ·
+       10/13/16-digit Unix timestamp · ISO-8601 · or a plain integer/float.
+     - Remaining headers = one Y-series per column.
+   • Every following line = data row with the **same number of columns**.
+   • Do **not** add anything else (titles, “# comments”, extra spaces, etc.).
+
+3. **Close** the fence with *exactly*:
+   \`\`\`
+   (three back-ticks on their own line)
+
+4. Write no Markdown or HTML around the fence.
+
+5. Example:
+   \`\`\`csv
+   Index-or-Date,SeriesA,SeriesB
+   2025-06-01,30,40
+   2025-06-02,80,90
+   2025-06-03,45,50
+   \`\`\`
+`.trim();
+
+    markdownInput.value = `
+### Chart
+\`\`\`csv
+Date,V1,V2,V3
+2025-01-01 01:00:00,10,90,30
+2025-01-01 02:00:00,90,10,70
+2025-01-01 03:00:00,10,90,30
+2025-01-01 04:00:00,90,10,70
+2025-01-01 05:00:00,10,90,30
+2025-01-01 06:00:00,90,10,70
+2025-01-01 07:00:00,10,90,30
+2025-01-01 08:00:00,90,10,70
+\`\`\`
+`.trim();
+
+    // Initial auto-resize & render
+    autoResizeTextarea(aiPromptInput);
+    autoResizeTextarea(markdownInput);
+    renderMarkdown();
+</script>
+</body>
+</html>
