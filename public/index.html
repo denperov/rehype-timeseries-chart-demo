@@ -275,7 +275,8 @@
     import remarkParse             from 'https://esm.sh/remark-parse@10.0.2';
     import remarkRehype            from 'https://esm.sh/remark-rehype@10.1.0';
     import rehypeStringify         from 'https://esm.sh/rehype-stringify@9.0.3';
-    import rehypeTimeseriesChart   from './rehype-timeseries-chart.js';
+    import rehypeTimeseriesChart   from 'https://esm.sh/rehype-timeseries-chart@0.0.28';
+    //import rehypeTimeseriesChart from './rehype-timeseries-chart.js';
 
     const aiPromptInput  = document.getElementById('ai-prompt');
     const sendPromptBtn  = document.getElementById('send-prompt-btn');
@@ -301,7 +302,7 @@
 
             const file = await unified()
                 .use(remarkParse)
-                .use(remarkRehype, { allowDangerousHtml: true })
+                .use(remarkRehype, { allowDangerousHtml: false })
                 .use(rehypeTimeseriesChart, {
                     width: 640,
                     height: 300,
