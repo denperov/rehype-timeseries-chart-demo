@@ -276,7 +276,6 @@
     import remarkRehype            from 'https://esm.sh/remark-rehype@10.1.0';
     import rehypeStringify         from 'https://esm.sh/rehype-stringify@9.0.3';
     import rehypeTimeseriesChart   from 'https://esm.sh/rehype-timeseries-chart@0.0.29';
-    //import rehypeTimeseriesChart from './rehype-timeseries-chart.js';
 
     const aiPromptInput  = document.getElementById('ai-prompt');
     const sendPromptBtn  = document.getElementById('send-prompt-btn');
@@ -286,13 +285,13 @@
     const themeToggleBtn = document.getElementById('theme-toggle-btn');
     const rootElement    = document.documentElement;
 
-    /* ── Auto-Resize Utility ───────────────────────────────────────────── */
+    // Auto-Resize Utility
     function autoResizeTextarea(el) {
         el.style.height = 'auto';
         el.style.height = `${el.scrollHeight}px`;
     }
 
-    /* ── Render Markdown → HTML + SVG ──────────────────────────────────── */
+    // Render Markdown → HTML + SVG
     async function renderMarkdown() {
         const mdText = markdownInput.value;
         try {
@@ -322,7 +321,7 @@
         }
     }
 
-    /* ── Theme Toggle Logic ────────────────────────────────────────────── */
+    // Theme Toggle Logic
     function setTheme(theme) {
         rootElement.setAttribute('data-theme', theme);
         localStorage.setItem('preferred-theme', theme);
@@ -344,7 +343,7 @@
         setTheme(current === 'dark' ? 'light' : 'dark');
     });
 
-    /* ── Populate Model Combobox on Load ────────────────────────────────── */
+    // Populate Model Combobox on Load
     async function loadModels() {
         try {
             const response = await fetch('/api/models');
@@ -422,43 +421,58 @@
         }
     });
 
-    /* ── Default Content on Load ────────────────────────────────────────── */
-    aiPromptInput.value = `
+    function loadDefaultContentFromScriptTags() {
+        const promptScript   = document.getElementById('default-prompt');
+        const markdownScript = document.getElementById('default-markdown');
+
+        aiPromptInput.value = promptScript?.textContent.trim() || '';
+        markdownInput.value = markdownScript?.textContent.trim() || '';
+
+        autoResizeTextarea(aiPromptInput);
+        autoResizeTextarea(markdownInput);
+        renderMarkdown();
+    }
+    loadDefaultContentFromScriptTags();
+</script>
+
+<!-- Default AI Prompt -->
+<script id="default-prompt" type="text/plain">
 Draw a diagram with the first 20 numbers of the Fibonacci sequence and the sequence of prime numbers.
 
 How to draw your chart (STRICT rules)
 
 1. **Open** a fenced block with *exactly*:
-   \`\`\`csv
+   ```csv
    (three back-ticks, then csv, then a newline).
 
 2. **Inside the fence put ONLY raw CSV** – *no comments, hashes, or blank lines*.
-   • Line 1  → column headers.
+   • Line 1 → column headers.
      - First header = X-axis. It can be
        YYYY-MM-DD · YYYY-MM · YYYY · HH:MM:SS · HH:MM · HH ·
        10/13/16-digit Unix timestamp · ISO-8601 · or a plain integer/float.
      - Remaining headers = one Y-series per column.
    • Every following line = data row with the **same number of columns**.
-   • Do **not** add anything else (titles, “# comments”, extra spaces, etc.).
+   • Do **not** add anything else (titles, "# comments" extra spaces, etc.).
 
 3. **Close** the fence with *exactly*:
-   \`\`\`
+   ```
    (three back-ticks on their own line)
 
 4. Write no Markdown or HTML around the fence.
 
 5. Example:
-   \`\`\`csv
+   ```csv
    Index-or-Date,SeriesA,SeriesB
    2025-06-01,30,40
    2025-06-02,80,90
    2025-06-03,45,50
-   \`\`\`
-`.trim();
+   ```
+</script>
 
-    markdownInput.value = `
+<!-- Default Markdown Content -->
+<script id="default-markdown" type="text/plain">
 ### Chart
-\`\`\`csv
+```csv
 Date,V1,V2,V3
 2025-01-01 01:00:00,10,90,30
 2025-01-01 02:00:00,90,10,70
@@ -468,13 +482,8 @@ Date,V1,V2,V3
 2025-01-01 06:00:00,90,10,70
 2025-01-01 07:00:00,10,90,30
 2025-01-01 08:00:00,90,10,70
-\`\`\`
-`.trim();
-
-    // Initial auto-resize & render
-    autoResizeTextarea(aiPromptInput);
-    autoResizeTextarea(markdownInput);
-    renderMarkdown();
+```
 </script>
+
 </body>
 </html>
