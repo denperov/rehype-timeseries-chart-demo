@@ -396,7 +396,7 @@
     });
 
     async function loadModels() {
-        const defaultModel = '@hf/meta-llama/meta-llama-3-8b-instruct';
+        const defaultModel = '@cf/meta/llama-3.1-8b-instruct';
         try {
             const resp = await fetch('/api/models');
             if (!resp.ok) throw new Error();
@@ -405,13 +405,16 @@
             let found = false;
             models.forEach(name => {
                 const opt = document.createElement('option'); opt.value = name; opt.textContent = name;
-                if (name === defaultModel) { opt.selected = true; found = true; }
+                if (name === defaultModel) {
+                    console.debug('Set model:', name)
+                    opt.selected = true; found = true;
+                }
                 modelSelect.append(opt);
             });
             if (!found && modelSelect.options.length) modelSelect.selectedIndex = 0;
         } catch {
-            console.warn('Could not load models; falling back to default.');
-            modelSelect.innerHTML = `<option value="${defaultModel}" selected>${defaultModel}</option>`;
+            console.warn('Could not load models; show not available option');
+            modelSelect.innerHTML = `<option value="${defaultModel}" selected>${defaultModel} (not available now)</option>`;
         } finally {
             sendPromptBtn.disabled = false;
         }

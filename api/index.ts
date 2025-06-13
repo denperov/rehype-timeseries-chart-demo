@@ -47,7 +47,7 @@ const models = [
   '@hf/thebloke/zephyr-7b-beta-awq',
 ];
 
-const defaultModel = '@hf/meta-llama/meta-llama-3-8b-instruct';
+const defaultModel = '@hf/llama/llama-3.1-8b-instruct';
 
 router.get('/api/models', () => models);
 
